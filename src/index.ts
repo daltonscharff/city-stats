@@ -1,4 +1,4 @@
-import { getScores } from "./walkScore";
+import { getWalkScoreData } from "./walkScore";
 import { getClimateData } from "./wikipedia";
 
 async function main() {
@@ -7,7 +7,7 @@ async function main() {
         console.error(e);
         process.exit(1);
     });
-    const walkScoreDataPromise = getScores(city).catch(e => {
+    const walkScoreDataPromise = getWalkScoreData(city).catch(e => {
         console.error(e);
         process.exit(1);
     });
