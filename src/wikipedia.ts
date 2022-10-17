@@ -2,7 +2,7 @@ import axios from "axios";
 import { Cheerio, Element, load } from "cheerio";
 
 const wikipediaService = axios.create({
-    baseURL: "https://en.wikipedia.org/w/api.php"
+    baseURL: "https://en.wikipedia.org/w/api.php",
 });
 
 export async function getWikipediaData(cityName: string) {
@@ -15,35 +15,39 @@ export async function getWikipediaData(cityName: string) {
         climateData,
         population,
         area,
-        elevation
+        elevation,
     };
 }
 
 async function getCityPageId(cityName: string) {
     type WikipediaQueryResult = {
-        batchcomplete: string,
+        batchcomplete: string;
         continue: {
-            "gsroffset": number;
-            "continue": string;
-        },
+            gsroffset: number;
+            continue: string;
+        };
         query?: {
-            "pages": Record<string, {
-                "pageid": number,
-                "ns": number,
-                "title": string,
-                "index": number;
-            }>;
+            pages: Record<
+                string,
+                {
+                    pageid: number;
+                    ns: number;
+                    title: string;
+                    index: number;
+                }
+            >;
         };
     };
-    const { data: wikipediaQueryResult } = await wikipediaService.get<WikipediaQueryResult>("/", {
-        params: {
-            action: "query",
-            gsrlimit: 1,
-            gsrsearch: cityName,
-            format: "json",
-            generator: "search"
-        }
-    });
+    const { data: wikipediaQueryResult } =
+        await wikipediaService.get<WikipediaQueryResult>("/", {
+            params: {
+                action: "query",
+                gsrlimit: 1,
+                gsrsearch: cityName,
+                format: "json",
+                generator: "search",
+            },
+        });
     if (!wikipediaQueryResult.query) {
         throw new Error("city not found");
     }
@@ -55,66 +59,92 @@ async function getCityPageId(cityName: string) {
 async function scrapeHtml(pageId: string) {
     type WikipediaPageResult = {
         parse: {
-            title: string,
-            pageid: number,
+            title: string;
+            pageid: number;
             text: {
                 "*": string;
             };
         };
     };
-    const { data: wikipediaPageResult } = await wikipediaService.get<WikipediaPageResult>("/", {
-        params: {
-            action: "parse",
-            pageid: pageId,
-            format: "json",
-        }
-    });
+    const { data: wikipediaPageResult } =
+        await wikipediaService.get<WikipediaPageResult>("/", {
+            params: {
+                action: "parse",
+                pageid: pageId,
+                format: "json",
+            },
+        });
     const pageHtml = wikipediaPageResult.parse.text["*"];
     return pageHtml;
 }
 
 function parseClimateTable(html: string) {
     const $ = load(html);
-    const climateTableElement = $("table.wikitable").filter((_, element) => /climate data/i.test($("tbody tr th", element).text()));
+    const climateTableElement = $("table.wikitable").filter((_, element) =>
+        /climate data/i.test($("tbody tr th", element).text()),
+    );
     const climateTableRows = $("tr", climateTableElement).filter((i) => i >= 1);
     const climateTableRowList: string[][] = [];
     climateTableRows.map((_, row) => {
-        const rowList = $(row).map((_, element) => {
-            return $("th", element).map((_, e) => {
-                return $(e).text().trim();
-            }).toArray().concat($("td", element).map((_, e) => {
-                return $(e).text().trim();
-            }).toArray());
-        }).toArray();
+        const rowList = $(row)
+            .map((_, element) => {
+                return $("th", element)
+                    .map((_, e) => {
+                        return $(e).text().trim();
+                    })
+                    .toArray()
+                    .concat(
+                        $("td", element)
+                            .map((_, e) => {
+                                return $(e).text().trim();
+                            })
+                            .toArray(),
+                    );
+            })
+            .toArray();
         climateTableRowList.push(rowList);
     });
 
     const climateTableObject: Record<string, any> = {};
-    climateTableRowList.filter((row, _, array) => row.length === array[0].length).forEach((row, i, array) => {
-        if (i === 0) return;
-        const obj: Record<string, string> = {};
-        array[0].filter((_, i) => i > 0).forEach((element, i) => obj[element] = row[i + 1]);
-        climateTableObject[row[0]] = obj;
-    });
+    climateTableRowList
+        .filter((row, _, array) => row.length === array[0].length)
+        .forEach((row, i, array) => {
+            if (i === 0) return;
+            const obj: Record<string, string> = {};
+            array[0]
+                .filter((_, i) => i > 0)
+                .forEach((element, i) => (obj[element] = row[i + 1]));
+            climateTableObject[row[0]] = obj;
+        });
 
     return climateTableObject;
 }
 
 function parseInfobox(html: string) {
     function getPopulation(infobox: Cheerio<Element>) {
-        const populationElement = $("tr.mergedtoprow", infobox).filter((_, row) => /population/i.test($(row).text())).first();
-        const population = parseInt($(".infobox-data", populationElement.next()).text().replace(/,/g, ''));
+        const populationElement = $("tr.mergedtoprow", infobox)
+            .filter((_, row) => /population/i.test($(row).text()))
+            .first();
+        const population = parseInt(
+            $(".infobox-data", populationElement.next())
+                .text()
+                .replace(/,/g, ""),
+        );
         return population;
     }
 
     function getArea(infobox: Cheerio<Element>) {
-        const areaElement = $("tr.mergedtoprow", infobox).filter((_, row) => /area/i.test($(row).text())).first();
+        const areaElement = $("tr.mergedtoprow", infobox)
+            .filter((_, row) => /area/i.test($(row).text()))
+            .first();
         const area = $(".infobox-data", areaElement.next()).text();
         return area;
     }
 
     function getElevation(infobox: Cheerio<Element>) {
-        const elevationElement = $("tr.mergedtoprow", infobox).filter((_, row) => /elevation/i.test($(row).text())).first();
+        const elevationElement = $("tr.mergedtoprow", infobox)
+            .filter((_, row) => /elevation/i.test($(row).text()))
+            .first();
         const elevation = $(".infobox-data", elevationElement).text();
         return elevation;
     }
@@ -122,6 +152,8 @@ function parseInfobox(html: string) {
     const $ = load(html);
     const infoboxElement = $(".infobox");
     return {
-        population: getPopulation(infoboxElement), area: getArea(infoboxElement), elevation: getElevation(infoboxElement)
+        population: getPopulation(infoboxElement),
+        area: getArea(infoboxElement),
+        elevation: getElevation(infoboxElement),
     };
 }

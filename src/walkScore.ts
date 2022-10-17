@@ -2,9 +2,8 @@ import axios from "axios";
 import { load } from "cheerio";
 
 const walkScoreService = axios.create({
-    baseURL: "https://www.walkscore.com"
+    baseURL: "https://www.walkscore.com",
 });
-
 
 export async function getWalkScoreData(cityName: string) {
     const cityPath = await getPath(cityName);
@@ -18,16 +17,19 @@ export async function getWalkScoreData(cityName: string) {
 
 async function getPath(cityName: string) {
     type CityPathQueryResult = {
-        query: string,
-        entities: boolean,
-        suggestions: { path: string, name: string; }[];
+        query: string;
+        entities: boolean;
+        suggestions: { path: string; name: string }[];
     };
-    const { data } = await walkScoreService.get<CityPathQueryResult>("/auth/search_suggest", {
-        params: {
-            query: cityName,
-            skip_entities: 0
-        }
-    });
+    const { data } = await walkScoreService.get<CityPathQueryResult>(
+        "/auth/search_suggest",
+        {
+            params: {
+                query: cityName,
+                skip_entities: 0,
+            },
+        },
+    );
 
     if (data.suggestions.length === 0) throw new Error("city not found");
 
@@ -41,22 +43,41 @@ async function scrapeHtml(path: string) {
 
 function getScores(html: string) {
     const $ = load(html);
-    const patternList = [/walk\/score\/(\d+).svg$/, /transit\/score\/(\d+).svg$/, /bike\/score\/(\d+).svg$/];
-    const imageList = patternList.map((pattern) => $('img').filter((_, element) => pattern.test($(element).attr("src") ?? "")).toArray()[0]);
-    const [walkScore, transitScore, bikeScore] = imageList.map((image, i) => image.attribs.src.match(patternList[i])?.[1]);
+    const patternList = [
+        /walk\/score\/(\d+).svg$/,
+        /transit\/score\/(\d+).svg$/,
+        /bike\/score\/(\d+).svg$/,
+    ];
+    const imageList = patternList.map(
+        (pattern) =>
+            $("img")
+                .filter((_, element) =>
+                    pattern.test($(element).attr("src") ?? ""),
+                )
+                .toArray()[0],
+    );
+    const [walkScore, transitScore, bikeScore] = imageList.map(
+        (image, i) => image.attribs.src.match(patternList[i])?.[1],
+    );
 
     return {
         walk: walkScore,
         transit: transitScore,
-        bike: bikeScore
+        bike: bikeScore,
     };
 }
 
 function getNeighborhoods(html: string) {
     const $ = load(html);
-    const neighborhoodRows = $('#hoods-list-table tbody tr');
+    const neighborhoodRows = $("#hoods-list-table tbody tr");
 
-    type Neighborhood = { name: string, walkScore: number, transitScore: number, bikeScore: number, population: number; };
+    type Neighborhood = {
+        name: string;
+        walkScore: number;
+        transitScore: number;
+        bikeScore: number;
+        population: number;
+    };
 
     const neighborhoods: Neighborhood[] = [];
 
@@ -66,7 +87,10 @@ function getNeighborhoods(html: string) {
             walkScore: parseInt($(".walkscore", row).text(), 10),
             transitScore: parseInt($(".transitscore", row).text(), 10),
             bikeScore: parseInt($(".bikescore", row).text(), 10),
-            population: parseInt($(".population", row).text().replace(/,/g, ''), 10)
+            population: parseInt(
+                $(".population", row).text().replace(/,/g, ""),
+                10,
+            ),
         };
         neighborhoods.push(neighborhood);
     });
