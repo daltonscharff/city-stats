@@ -1,16 +1,22 @@
 import axios from "axios";
-import { load } from "cheerio";
+import { Cheerio, Element, load } from "cheerio";
 
 const wikipediaService = axios.create({
     baseURL: "https://en.wikipedia.org/w/api.php"
 });
 
-export async function getClimateData(cityName: string) {
+export async function getWikipediaData(cityName: string) {
     const pageId = await getCityPageId(cityName);
     const pageHtml = await scrapeHtml(pageId);
-    const climateTable = parseClimateTable(pageHtml);
+    const climateData = parseClimateTable(pageHtml);
+    const { population, area, elevation } = parseInfobox(pageHtml);
 
-    return climateTable;
+    return {
+        climateData,
+        population,
+        area,
+        elevation
+    };
 }
 
 async function getCityPageId(cityName: string) {
@@ -92,4 +98,30 @@ function parseClimateTable(html: string) {
     });
 
     return climateTableObject;
+}
+
+function parseInfobox(html: string) {
+    function getPopulation(infobox: Cheerio<Element>) {
+        const populationElement = $("tr.mergedtoprow", infobox).filter((_, row) => /population/i.test($(row).text())).first();
+        const population = parseInt($(".infobox-data", populationElement.next()).text().replace(/,/g, ''));
+        return population;
+    }
+
+    function getArea(infobox: Cheerio<Element>) {
+        const areaElement = $("tr.mergedtoprow", infobox).filter((_, row) => /area/i.test($(row).text())).first();
+        const area = $(".infobox-data", areaElement.next()).text();
+        return area;
+    }
+
+    function getElevation(infobox: Cheerio<Element>) {
+        const elevationElement = $("tr.mergedtoprow", infobox).filter((_, row) => /elevation/i.test($(row).text())).first();
+        const elevation = $(".infobox-data", elevationElement).text();
+        return elevation;
+    }
+
+    const $ = load(html);
+    const infoboxElement = $(".infobox");
+    return {
+        population: getPopulation(infoboxElement), area: getArea(infoboxElement), elevation: getElevation(infoboxElement)
+    };
 }

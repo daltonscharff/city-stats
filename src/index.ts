@@ -1,20 +1,24 @@
 import { getWalkScoreData } from "./walkScore";
-import { getClimateData } from "./wikipedia";
+import { getWikipediaData } from "./wikipedia";
 
 async function main() {
     const city = process.argv[2];
-    const climateDataPromise = getClimateData(city).catch(e => {
-        console.error(e);
+    const wikipediaDataPromise = getWikipediaData(city).catch(e => {
+        console.error(`Error getting Wikipedia data: ${e}`);
         process.exit(1);
     });
     const walkScoreDataPromise = getWalkScoreData(city).catch(e => {
-        console.error(e);
+        console.error(`Error getting WalkScore data: ${e}`);
         process.exit(1);
     });
 
-    const [climateData, walkScoreData] = await Promise.all([climateDataPromise, walkScoreDataPromise]);
+    const [wikipediaData,
+        walkScoreData
+    ] = await Promise.all([wikipediaDataPromise,
+        walkScoreDataPromise
+    ]);
 
-    console.log(climateData);
+    console.log(wikipediaData);
     console.log(walkScoreData);
 }
 
