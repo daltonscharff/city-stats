@@ -4,12 +4,11 @@ import { getWikipediaData } from "./wikipedia";
 async function main() {
     const city = process.argv[2];
     const wikipediaDataPromise = getWikipediaData(city).catch((e) => {
-        console.error(`Error getting Wikipedia data: ${e}`);
+        console.error(`Could not get Wikipedia data: ${e}`);
         process.exit(1);
     });
     const walkScoreDataPromise = getWalkScoreData(city).catch((e) => {
-        console.error(`Error getting WalkScore data: ${e}`);
-        process.exit(1);
+        console.error(`Could not get WalkScore data: ${e}`);
     });
 
     const [wikipediaData, walkScoreData] = await Promise.all([

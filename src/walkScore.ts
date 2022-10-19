@@ -8,7 +8,6 @@ const walkScoreService = axios.create({
 export async function getWalkScoreData(cityName: string) {
     const cityPath = await getPath(cityName);
     const pageHtml = await scrapeHtml(cityPath);
-
     const average = getScores(pageHtml);
     const byNeighborhood = getNeighborhoods(pageHtml);
 
@@ -57,7 +56,7 @@ function getScores(html: string) {
                 .toArray()[0],
     );
     const [walkScore, transitScore, bikeScore] = imageList.map(
-        (image, i) => image.attribs.src.match(patternList[i])?.[1],
+        (image, i) => image?.attribs.src.match(patternList[i])?.[1],
     );
 
     return {
