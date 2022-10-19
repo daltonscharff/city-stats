@@ -136,9 +136,10 @@ function parseClimateTable(html: string) {
 
         Object.keys(climateTable).forEach((key) => {
             Object.keys(climateTable[key]).forEach((k) => {
-                climateTable[key][k] = parseFloat(
-                    climateTable[key][k].replace("−", "-"),
-                );
+                const value = climateTable[key][k]
+                    .replace("−", "-")
+                    .replaceAll(",", "");
+                climateTable[key][k] = isNaN(value) ? value : parseFloat(value);
             });
         });
 
@@ -166,7 +167,9 @@ function parseInfobox(html: string) {
         const areaElement = $("tr.mergedtoprow", infobox)
             .filter((_, row) => /area/i.test($(row).text()))
             .first();
-        const area = $(".infobox-data", areaElement.next()).text();
+        const area = $(".infobox-data", areaElement.next())
+            .text()
+            .replace(/\s?\(.*\)/, "");
         return area;
     }
 
@@ -174,7 +177,9 @@ function parseInfobox(html: string) {
         const elevationElement = $("tr.mergedtoprow", infobox)
             .filter((_, row) => /elevation/i.test($(row).text()))
             .first();
-        const elevation = $(".infobox-data", elevationElement).text();
+        const elevation = $(".infobox-data", elevationElement)
+            .text()
+            .replace(/\s?\(.*\)/, "");
         return elevation;
     }
 
