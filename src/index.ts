@@ -21,26 +21,30 @@ async function main() {
         walkScore: walkScoreData,
     };
 
-    console.log(
-        JSON.stringify(
-            {
-                city: cityStats.city,
-                population: cityStats.population,
-                elevation: cityStats.elevation,
-                area: cityStats.area,
-                averageWalkScore: cityStats.walkScore?.average,
-            },
-            undefined,
-            2,
-        ),
-    );
+    printCityStats(cityStats);
 
-    console.log("Climate Data");
-    console.table(cityStats.climateData);
+    function printCityStats(stats: typeof cityStats) {
+        console.log(
+            JSON.stringify(
+                {
+                    city: stats.city,
+                    population: stats.population,
+                    elevation: stats.elevation,
+                    area: stats.area,
+                    averageWalkScore: stats.walkScore?.average,
+                },
+                undefined,
+                2,
+            ),
+        );
 
-    if (cityStats.walkScore) {
-        console.log("WalkScore by Neighborhood");
-        console.table(cityStats.walkScore.byNeighborhood);
+        console.log("Climate Data");
+        console.table(stats.climateData);
+
+        if (stats.walkScore) {
+            console.log("WalkScore by Neighborhood");
+            console.table(stats.walkScore.byNeighborhood);
+        }
     }
 }
 
