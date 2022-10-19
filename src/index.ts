@@ -17,8 +17,11 @@ async function main() {
         walkScoreDataPromise,
     ]);
 
-    console.log(wikipediaData);
-    console.log(walkScoreData);
+    const cityStats = {
+        ...wikipediaData,
+        walkScore: walkScoreData,
+    };
+    console.log(JSON.stringify(cityStats, undefined, 2));
 }
 
 main();

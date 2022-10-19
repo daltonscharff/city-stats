@@ -6,12 +6,13 @@ const wikipediaService = axios.create({
 });
 
 export async function getWikipediaData(cityName: string) {
-    const pageId = await getCityPageId(cityName);
-    const pageHtml = await scrapeHtml(pageId);
+    const cityPage = await getCityPageData(cityName);
+    const pageHtml = await scrapeHtml(cityPage.pageid);
     const climateData = parseClimateTable(pageHtml);
     const { population, area, elevation } = parseInfobox(pageHtml);
 
     return {
+        city: cityPage.title,
         climateData,
         population,
         area,
@@ -19,7 +20,7 @@ export async function getWikipediaData(cityName: string) {
     };
 }
 
-async function getCityPageId(cityName: string) {
+async function getCityPageData(cityName: string) {
     type WikipediaQueryResult = {
         batchcomplete: string;
         continue: {
@@ -30,7 +31,7 @@ async function getCityPageId(cityName: string) {
             pages: Record<
                 string,
                 {
-                    pageid: number;
+                    pageid: string;
                     ns: number;
                     title: string;
                     index: number;
@@ -53,7 +54,7 @@ async function getCityPageId(cityName: string) {
     }
 
     const pageId = Object.keys(wikipediaQueryResult.query.pages)[0];
-    return pageId;
+    return wikipediaQueryResult.query.pages[pageId];
 }
 
 async function scrapeHtml(pageId: string) {

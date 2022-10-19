@@ -9,10 +9,10 @@ export async function getWalkScoreData(cityName: string) {
     const cityPath = await getPath(cityName);
     const pageHtml = await scrapeHtml(cityPath);
 
-    const scores = getScores(pageHtml);
-    const neighborhoods = getNeighborhoods(pageHtml);
+    const average = getScores(pageHtml);
+    const byNeighborhood = getNeighborhoods(pageHtml);
 
-    return { scores, neighborhoods };
+    return { average, byNeighborhood };
 }
 
 async function getPath(cityName: string) {
