@@ -118,7 +118,35 @@ function parseClimateTable(html: string) {
             climateTableObject[row[0]] = obj;
         });
 
-    return climateTableObject;
+    function clean(climateTable: typeof climateTableObject) {
+        Object.keys(climateTable).forEach((key) => {
+            const keyPattern = /\((?:(\w|°))+\)$/;
+            if (!key.match(keyPattern)) return;
+
+            const cleanedKey = key.replace(keyPattern, "").trim();
+            const valuePattern = /\(.+\)$/;
+            climateTable[cleanedKey] = {};
+            Object.keys(climateTable[key]).forEach((k) => {
+                climateTable[cleanedKey][k] = climateTable[key][k]
+                    .replace(valuePattern, "")
+                    .trim();
+            });
+            delete climateTable[key];
+        });
+
+        Object.keys(climateTable).forEach((key) => {
+            Object.keys(climateTable[key]).forEach((k) => {
+                climateTable[key][k] = parseFloat(
+                    climateTable[key][k].replace("−", "-"),
+                );
+            });
+        });
+
+        return climateTable;
+    }
+
+    const cleanedClimateTable = clean(climateTableObject);
+    return cleanedClimateTable;
 }
 
 function parseInfobox(html: string) {
