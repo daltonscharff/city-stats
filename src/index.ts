@@ -20,7 +20,28 @@ async function main() {
         ...wikipediaData,
         walkScore: walkScoreData,
     };
-    console.log(JSON.stringify(cityStats, undefined, 2));
+
+    console.log(
+        JSON.stringify(
+            {
+                city: cityStats.city,
+                population: cityStats.population,
+                elevation: cityStats.elevation,
+                area: cityStats.area,
+                averageWalkScore: cityStats.walkScore?.average,
+            },
+            undefined,
+            2,
+        ),
+    );
+
+    console.log("Climate Data");
+    console.table(cityStats.climateData);
+
+    if (cityStats.walkScore) {
+        console.log("WalkScore by Neighborhood");
+        console.table(cityStats.walkScore.byNeighborhood);
+    }
 }
 
 main();
