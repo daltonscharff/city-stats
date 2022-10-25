@@ -55,9 +55,15 @@ function getScores(html: string) {
                 )
                 .toArray()[0],
     );
-    const [walkScore, transitScore, bikeScore] = imageList.map(
-        (image, i) => image?.attribs.src.match(patternList[i])?.[1],
-    );
+    const [walkScore, transitScore, bikeScore] = imageList.map((image, i) => {
+        const value: string | undefined = image?.attribs.src.match(
+            patternList[i],
+        )?.[1];
+        if (!value) {
+            return undefined;
+        }
+        return isNaN(parseInt(value)) ? value : parseInt(value);
+    });
 
     return {
         walk: walkScore,
