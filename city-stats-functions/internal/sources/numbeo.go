@@ -13,8 +13,6 @@ import (
 
 var (
 	numbeoUrl string = "https://www.numbeo.com/cost-of-living/rankings_current.jsp"
-
-	scrape = func(url string) (string, error) { return utils.Scrape(url) }
 )
 
 type NumbeoDataRow struct {
@@ -75,8 +73,9 @@ func (n *Numbeo) parse(body string) {
 }
 
 func (n *Numbeo) Find(location string) (NumbeoDataRow, error) {
-	body, err := scrape(numbeoUrl)
+	body, err := utils.Scrape(numbeoUrl)
 	if err != nil {
+		fmt.Println("ERROR HERE", err)
 		return NumbeoDataRow{}, err
 	}
 	n.parse(body)

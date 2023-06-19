@@ -1,19 +1,20 @@
 package sources
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
 	"testing"
 
+	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNumbeoFind(t *testing.T) {
-	scrape = func(url string) (string, error) {
-		body, err := os.ReadFile(filepath.Join("testdata", "numbeo.html"))
-		assert.Nil(t, err)
-		return string(body), nil
-	}
+	defer gock.Off()
+
+	gock.New("https://www.numbeo.com").
+		Get("/cost-of-living/rankings_current.jsp").Persist().
+		Reply(200).File(filepath.Join("testdata", "numbeo.html"))
 
 	n := Numbeo{}
 
@@ -25,6 +26,9 @@ func TestNumbeoFind(t *testing.T) {
 
 	t.Run("Valid location, lowercase", func(t *testing.T) {
 		row, err := n.Find(("dallas"))
+		if err != nil {
+			fmt.Println(err)
+		}
 		assert.Nil(t, err)
 		assert.Equal(t, row, NumbeoDataRow{"Dallas, TX, United States", 77.4, 53.8, 66.2, 75.7, 78.1, 112})
 	})
@@ -32,5 +36,6 @@ func TestNumbeoFind(t *testing.T) {
 	t.Run("Invalid location", func(t *testing.T) {
 		_, err := n.Find(("hello world"))
 		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "location not found")
 	})
 }
