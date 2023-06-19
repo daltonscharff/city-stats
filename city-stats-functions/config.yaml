@@ -1,0 +1,4 @@
+NUMBEO_URL: https://www.numbeo.com/cost-of-living/rankings_current.jsp
+WIKIPEDIA_API_URL: https://en.wikipedia.org/w/api.php
+WALKSCORE_BASE_URL: https://www.walkscore.com
+WALKSCORE_SEARCH_URL: https://www.walkscore.com/auth/search_suggest
