@@ -17,5 +17,5 @@
 # Go workspace file
 go.work
 
-# AWS SAM
 .aws-sam/
+.DS_Store
