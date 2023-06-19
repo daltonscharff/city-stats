@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"strings"
+
+	"github.com/daltonscharff/city-stats/sources"
 )
 
 func handler() {
@@ -10,7 +12,7 @@ func handler() {
 	loc := strings.ToLower(location)
 	fmt.Println(location)
 
-	numbeo := Numbeo{}
+	numbeo := sources.Numbeo{}
 
 	fmt.Println(numbeo.Find((loc)))
 }
