@@ -51,9 +51,6 @@ func (n *Numbeo) parse(body string) {
 						break
 					}
 					if tt == html.TextToken && len(d) > 0 {
-						if d == "Rank" {
-							continue
-						}
 						row = append(row, d)
 					}
 				}
