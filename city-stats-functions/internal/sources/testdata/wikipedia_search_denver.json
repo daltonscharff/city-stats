@@ -1,0 +1,9 @@
+{
+  "batchcomplete": "",
+  "continue": { "gsroffset": 1, "continue": "gsroffset||" },
+  "query": {
+    "pages": {
+      "8522": { "pageid": 8522, "ns": 0, "title": "Denver", "index": 1 }
+    }
+  }
+}
