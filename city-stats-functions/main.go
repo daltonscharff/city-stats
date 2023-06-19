@@ -2,19 +2,17 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/daltonscharff/city-stats/sources"
+	"github.com/daltonscharff/city-stats/internal/sources"
 )
 
 func handler() {
 	location := "Austin, TX"
-	loc := strings.ToLower(location)
 	fmt.Println(location)
 
 	numbeo := sources.Numbeo{}
 
-	fmt.Println(numbeo.Find((loc)))
+	fmt.Println(numbeo.Find((location)))
 }
 
 func main() {

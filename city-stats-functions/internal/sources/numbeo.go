@@ -3,12 +3,10 @@ package sources
 import (
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/daltonscharff/city-stats/internal/utils"
 	"golang.org/x/exp/slices"
 	"golang.org/x/net/html"
 )
@@ -26,27 +24,11 @@ type NumbeoDataRow struct {
 }
 
 type Numbeo struct {
-	Rows      []NumbeoDataRow
-	scrapedAt time.Time
+	Rows []NumbeoDataRow
 }
 
-func (n *Numbeo) Scrape() {
-	resp, err := http.Get(numbeoUrl)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	n.scrapedAt = time.Now().UTC()
-
-	tkn := html.NewTokenizer(strings.NewReader((string(body))))
+func (n *Numbeo) parse(body string) {
+	tkn := html.NewTokenizer(strings.NewReader(body))
 	for {
 		tt := tkn.Next()
 		switch {
@@ -92,13 +74,16 @@ func (n *Numbeo) Scrape() {
 }
 
 func (n *Numbeo) Find(location string) (NumbeoDataRow, error) {
-	if n.scrapedAt.Before(time.Now().AddDate(0, 0, -1)) {
-		n.Scrape()
+	body, err := utils.Scrape(numbeoUrl)
+	if err != nil {
+		return NumbeoDataRow{}, err
 	}
+	n.parse(body)
 
 	index := slices.IndexFunc(n.Rows, func(row NumbeoDataRow) bool {
 		l := strings.ToLower((row.Location))
-		return strings.Contains(l, location)
+		loc := strings.ToLower(location)
+		return strings.Contains(l, loc)
 	})
 
 	if index == -1 {
