@@ -11,7 +11,11 @@ import (
 	"golang.org/x/net/html"
 )
 
-var numbeoUrl string = "https://www.numbeo.com/cost-of-living/rankings_current.jsp"
+var (
+	numbeoUrl string = "https://www.numbeo.com/cost-of-living/rankings_current.jsp"
+
+	scrape = func(url string) (string, error) { return utils.Scrape(url) }
+)
 
 type NumbeoDataRow struct {
 	Location                  string
@@ -71,7 +75,7 @@ func (n *Numbeo) parse(body string) {
 }
 
 func (n *Numbeo) Find(location string) (NumbeoDataRow, error) {
-	body, err := utils.Scrape(numbeoUrl)
+	body, err := scrape(numbeoUrl)
 	if err != nil {
 		return NumbeoDataRow{}, err
 	}

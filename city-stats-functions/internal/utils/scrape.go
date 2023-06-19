@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"io"
 	"net/http"
 )
@@ -11,6 +12,10 @@ func Scrape(url string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		return "", errors.New(resp.Status)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
