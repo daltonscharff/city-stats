@@ -40,13 +40,31 @@ func TestWikipediaGetHtmlByPageId(t *testing.T) {
 		Persist().Reply(200).
 		File(filename)
 
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
-	assert.Nil(t, err)
+	gock.New(utils.WikipediaApiUrl).
+		MatchParam("action", "parse").
+		MatchParam("format", "json").
+		MatchParam("pageid", "-1").
+		Persist().Reply(200).
+		JSON(map[string](map[string]string){
+			"error": {
+				"code": "nosuchpageid",
+			},
+		})
 
-	json.Unmarshal(text, &data)
+	t.Run("Valid pageid", func(t *testing.T) {
+		var data WikipediaPageResult
+		text, err := ioutil.ReadFile(filename)
+		assert.Nil(t, err)
 
-	html, err := getHtmlByPageId("8522")
-	assert.Nil(t, err)
-	assert.Equal(t, data.Parse.Text.All, html)
+		json.Unmarshal(text, &data)
+
+		html, err := getHtmlByPageId("8522")
+		assert.Nil(t, err)
+		assert.Equal(t, data.Parse.Text.All, html)
+	})
+
+	t.Run("Invalid pageid", func(t *testing.T) {
+		_, err := getHtmlByPageId("-1")
+		assert.Equal(t, err.Error(), "nosuchpageid")
+	})
 }

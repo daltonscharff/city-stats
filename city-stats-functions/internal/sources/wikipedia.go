@@ -2,6 +2,7 @@ package sources
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/daltonscharff/city-stats/internal/utils"
@@ -24,11 +25,6 @@ type Stats struct {
 }
 
 type WikipediaSearchQueryResult struct {
-	Batchcomplete string `json:"batchcomplete"`
-	Continue      struct {
-		Gsroffset int    `json:"gsroffset"`
-		Continue  string `json:"continue"`
-	} `json:"continue"`
 	Query struct {
 		Pages map[string]struct {
 			Pageid int    `json:"pageid"`
@@ -47,6 +43,9 @@ type WikipediaPageResult struct {
 			All string `json:"*"`
 		} `json:"text"`
 	} `json:"parse"`
+	Error struct {
+		Code string `json:"code"`
+	} `json:"error,omitempty"`
 }
 
 func getPageId(query string) (string, error) {
@@ -101,6 +100,10 @@ func getHtmlByPageId(pageId string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if data.Error.Code != "" {
+		return "", errors.New(data.Error.Code)
+	}
 
 	return data.Parse.Text.All, nil
 }
