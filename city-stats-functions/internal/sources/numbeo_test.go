@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/daltonscharff/city-stats/internal/utils"
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +13,7 @@ import (
 func TestNumbeoFind(t *testing.T) {
 	defer gock.Off()
 
-	gock.New("https://www.numbeo.com").
+	gock.New(utils.NumbeoUrl).
 		Get("/cost-of-living/rankings_current.jsp").Persist().
 		Reply(200).File(filepath.Join("testdata", "numbeo.html"))
 

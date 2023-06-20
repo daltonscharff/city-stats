@@ -39,6 +39,16 @@ type WikipediaSearchQueryResult struct {
 	} `json:"query,omitempty"`
 }
 
+type WikipediaPageResult struct {
+	Parse struct {
+		Title  string `json:"title"`
+		Pageid int    `json:"pageid"`
+		Text   struct {
+			All string `json:"*"`
+		} `json:"text"`
+	} `json:"parse"`
+}
+
 func getPageId(query string) (string, error) {
 	req, err := http.NewRequest("GET", utils.WikipediaApiUrl, nil)
 	if err != nil {
@@ -66,4 +76,31 @@ func getPageId(query string) (string, error) {
 	defer resp.Body.Close()
 
 	return maps.Keys(data.Query.Pages)[0], nil
+}
+
+func getHtmlByPageId(pageId string) (string, error) {
+	req, err := http.NewRequest("GET", utils.WikipediaApiUrl, nil)
+	if err != nil {
+		return "", err
+	}
+
+	q := req.URL.Query()
+	q.Add("action", "parse")
+	q.Add("pageid", pageId)
+	q.Add("format", "json")
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	var data WikipediaPageResult
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	return data.Parse.Text.All, nil
 }
