@@ -2,17 +2,12 @@ package sources
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/daltonscharff/city-stats/internal/utils"
 	"golang.org/x/exp/slices"
 	"golang.org/x/net/html"
-)
-
-var (
-	numbeoUrl string = "https://www.numbeo.com/cost-of-living/rankings_current.jsp"
 )
 
 type NumbeoDataRow struct {
@@ -46,7 +41,6 @@ func (n *Numbeo) parse(body string) {
 					t = tkn.Token()
 					d := strings.TrimSpace(t.Data)
 					if tt == html.ErrorToken {
-						fmt.Println("Error token")
 						return
 					}
 					if tt == html.EndTagToken && d == "tr" {
@@ -73,9 +67,8 @@ func (n *Numbeo) parse(body string) {
 }
 
 func (n *Numbeo) Find(location string) (NumbeoDataRow, error) {
-	body, err := utils.Scrape(numbeoUrl)
+	body, err := utils.Scrape(utils.NumbeoUrl)
 	if err != nil {
-		fmt.Println("ERROR HERE", err)
 		return NumbeoDataRow{}, err
 	}
 	n.parse(body)

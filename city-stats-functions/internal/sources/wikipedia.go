@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/daltonscharff/city-stats/internal/utils"
 	"golang.org/x/exp/maps"
-)
-
-var (
-	wikipediaURL = "https://en.wikipedia.org/w/api.php"
 )
 
 type ClimateRecord struct {
@@ -43,7 +40,7 @@ type WikipediaSearchQueryResult struct {
 }
 
 func getPageId(query string) (string, error) {
-	req, err := http.NewRequest("GET", "https://en.wikipedia.org/w/api.php", nil)
+	req, err := http.NewRequest("GET", utils.WikipediaApiUrl, nil)
 	if err != nil {
 		return "", err
 	}
