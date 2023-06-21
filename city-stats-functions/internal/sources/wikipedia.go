@@ -4,24 +4,27 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/daltonscharff/city-stats/internal/utils"
 	"golang.org/x/exp/maps"
 )
 
-type ClimateRecord struct {
+type WikipediaClimateRecord struct {
 	Name    string
 	Records [12]float32
 	Average float32
 }
 
-type Stats struct {
-	City       string
-	State      string
-	Climate    []ClimateRecord
-	Population int
-	Area       int
-	Elevation  int
+type WikipediaStats struct {
+	City        string
+	State       string
+	Population  int
+	AreaSqMi    float32
+	ElevationFt int
+	Climate     []WikipediaClimateRecord
 }
 
 type WikipediaSearchQueryResult struct {
@@ -106,4 +109,64 @@ func getHtmlByPageId(pageId string) (string, error) {
 	}
 
 	return data.Parse.Text.All, nil
+}
+
+func parseHtml(body string) (WikipediaStats, error) {
+	var s WikipediaStats
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return WikipediaStats{}, err
+	}
+
+	popIndex := -1
+	areaIndex := -1
+	doc.Find(".infobox.vcard tr").Each(func(i int, selection *goquery.Selection) {
+		th := selection.Find("th").Text()
+		td := selection.Find("td").Text()
+
+		switch {
+		case strings.ToLower(th) == "state":
+			s.State = td
+
+		case s.ElevationFt == 0 && strings.Contains(strings.ToLower(th), "elevation"):
+			e := strings.Split(td, "ft")
+			elevation := strings.ReplaceAll(strings.TrimSpace(e[0]), ",", "")
+			intElevation, err := strconv.Atoi(elevation)
+			if err != nil {
+				s.ElevationFt = -1
+				break
+			}
+			s.ElevationFt = intElevation
+
+		case popIndex == -1 && strings.Contains(strings.ToLower(th), "population"):
+			popIndex = i
+
+		case popIndex > -1 && i == popIndex+1:
+			pop := strings.ReplaceAll(td, ",", "")
+			intPop, err := strconv.Atoi(pop)
+			if err != nil {
+				s.Population = -1
+				break
+			}
+			s.Population = intPop
+
+		case areaIndex == -1 && strings.Contains(strings.ToLower(th), "area"):
+			areaIndex = i
+
+		case areaIndex > -1 && i == areaIndex+1:
+			a := strings.Split(td, "sq")
+			area := strings.ReplaceAll(strings.TrimSpace(a[0]), ",", "")
+			floatArea, err := strconv.ParseFloat(area, 32)
+			if err != nil {
+				s.AreaSqMi = -1
+				break
+			}
+			s.AreaSqMi = float32(floatArea)
+		}
+	})
+
+	s.City = doc.Find("div.mw-parser-output p b").First().Text()
+
+	return s, nil
 }

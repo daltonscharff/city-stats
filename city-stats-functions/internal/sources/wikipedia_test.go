@@ -68,3 +68,23 @@ func TestWikipediaGetHtmlByPageId(t *testing.T) {
 		assert.Equal(t, err.Error(), "nosuchpageid")
 	})
 }
+
+func TestWikipediaParseHtml(t *testing.T) {
+	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
+	var data WikipediaPageResult
+	text, err := ioutil.ReadFile(filename)
+	assert.Nil(t, err)
+	json.Unmarshal(text, &data)
+
+	s, err := parseHtml(data.Parse.Text.All)
+	assert.Nil(t, err)
+	assert.EqualValues(t, WikipediaStats{
+		"Denver",
+		"Colorado",
+		715_522,
+		154.726,
+		5_276,
+		[]WikipediaClimateRecord(nil),
+	}, s)
+
+}
