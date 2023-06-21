@@ -5,6 +5,8 @@ go 1.19
 require github.com/aws/aws-lambda-go v1.41.0
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.1 // indirect
+	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/h2non/gock v1.2.0 // indirect
