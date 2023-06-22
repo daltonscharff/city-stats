@@ -1,4 +1,4 @@
-package sources
+package services
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ type WikipediaClimateRecord struct {
 	Year  float32
 }
 
-type WikipediaStats struct {
+type WikipediaLocationSearchResult struct {
 	City         string
 	State        string
 	Population   int
@@ -28,7 +28,7 @@ type WikipediaStats struct {
 	ClimateTable []WikipediaClimateRecord
 }
 
-type WikipediaSearchQueryResult struct {
+type wikipediaSearchQueryResponse struct {
 	Query struct {
 		Pages map[string]struct {
 			Pageid int    `json:"pageid"`
@@ -39,7 +39,7 @@ type WikipediaSearchQueryResult struct {
 	} `json:"query,omitempty"`
 }
 
-type WikipediaPageResult struct {
+type wikipediaPageResponse struct {
 	Parse struct {
 		Title  string `json:"title"`
 		Pageid int    `json:"pageid"`
@@ -50,6 +50,20 @@ type WikipediaPageResult struct {
 	Error struct {
 		Code string `json:"code"`
 	} `json:"error,omitempty"`
+}
+
+func LocationSearch(location string) (WikipediaLocationSearchResult, error) {
+	pageId, err := getPageId(location)
+	if err != nil {
+		return WikipediaLocationSearchResult{}, err
+	}
+
+	html, err := getHtmlByPageId(pageId)
+	if err != nil {
+		return WikipediaLocationSearchResult{}, err
+	}
+
+	return parseLocationData(html)
 }
 
 func getPageId(query string) (string, error) {
@@ -71,7 +85,7 @@ func getPageId(query string) (string, error) {
 		return "", err
 	}
 
-	var data WikipediaSearchQueryResult
+	var data wikipediaSearchQueryResponse
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
 		return "", err
@@ -98,7 +112,7 @@ func getHtmlByPageId(pageId string) (string, error) {
 		return "", err
 	}
 
-	var data WikipediaPageResult
+	var data wikipediaPageResponse
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
 		return "", err
@@ -112,13 +126,13 @@ func getHtmlByPageId(pageId string) (string, error) {
 	return data.Parse.Text.All, nil
 }
 
-func parseHtml(body string) (WikipediaStats, error) {
+func parseLocationData(body string) (WikipediaLocationSearchResult, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
-		return WikipediaStats{}, err
+		return WikipediaLocationSearchResult{}, err
 	}
 
-	return WikipediaStats{
+	return WikipediaLocationSearchResult{
 		parseCity(doc),
 		parseState(doc),
 		parsePopulation(doc),

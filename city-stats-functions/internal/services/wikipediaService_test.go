@@ -1,4 +1,4 @@
-package sources
+package services
 
 import (
 	"encoding/json"
@@ -13,7 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWikipediaGetPageId(t *testing.T) {
+var (
+	wikipediaParseDenverFilename = filepath.Join("..", "..", "testdata", "wikipedia_parse_denver.json")
+	wikipediaQueryDenverFilename = filepath.Join("..", "..", "testdata", "wikipedia_query_denver.json")
+)
+
+func TestWikipediaServiceGetPageId(t *testing.T) {
 	defer gock.Off()
 
 	gock.New(utils.WikipediaApiUrl).
@@ -23,24 +28,22 @@ func TestWikipediaGetPageId(t *testing.T) {
 		MatchParam("format", "json").
 		MatchParam("generator", "search").
 		Persist().Reply(200).
-		File(filepath.Join("testdata", "wikipedia_query_denver.json"))
+		File(wikipediaQueryDenverFilename)
 
 	id, err := getPageId("Denver,CO")
 	assert.Nil(t, err)
 	assert.Equal(t, "8522", id)
 }
 
-func TestWikipediaGetHtmlByPageId(t *testing.T) {
+func TestWikipediaServiceGetHtmlByPageId(t *testing.T) {
 	defer gock.Off()
-
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
 
 	gock.New(utils.WikipediaApiUrl).
 		MatchParam("action", "parse").
 		MatchParam("format", "json").
 		MatchParam("pageid", "8522").
 		Persist().Reply(200).
-		File(filename)
+		File(wikipediaParseDenverFilename)
 
 	gock.New(utils.WikipediaApiUrl).
 		MatchParam("action", "parse").
@@ -54,8 +57,8 @@ func TestWikipediaGetHtmlByPageId(t *testing.T) {
 		})
 
 	t.Run("Valid pageid", func(t *testing.T) {
-		var data WikipediaPageResult
-		text, err := ioutil.ReadFile(filename)
+		var data wikipediaPageResponse
+		text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 		assert.Nil(t, err)
 
 		json.Unmarshal(text, &data)
@@ -71,22 +74,20 @@ func TestWikipediaGetHtmlByPageId(t *testing.T) {
 	})
 }
 
-func TestWikipediaParseHtml(t *testing.T) {
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
+func TestWikipediaServiceParseHtml(t *testing.T) {
+	var data wikipediaPageResponse
+	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
-	s, err := parseHtml(data.Parse.Text.All)
+	s, err := parseLocationData(data.Parse.Text.All)
 	assert.Nil(t, err)
-	assert.IsType(t, WikipediaStats{}, s)
+	assert.IsType(t, WikipediaLocationSearchResult{}, s)
 }
 
-func TestWikipediaParseCity(t *testing.T) {
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
+func TestWikipediaServiceParseCity(t *testing.T) {
+	var data wikipediaPageResponse
+	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -95,10 +96,9 @@ func TestWikipediaParseCity(t *testing.T) {
 	assert.Equal(t, "Denver", parseCity(doc))
 }
 
-func TestWikipediaParseState(t *testing.T) {
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
+func TestWikipediaServiceParseState(t *testing.T) {
+	var data wikipediaPageResponse
+	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -107,10 +107,9 @@ func TestWikipediaParseState(t *testing.T) {
 	assert.Equal(t, "Colorado", parseState(doc))
 }
 
-func TestWikipediaParsePopulation(t *testing.T) {
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
+func TestWikipediaServiceParsePopulation(t *testing.T) {
+	var data wikipediaPageResponse
+	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -119,10 +118,9 @@ func TestWikipediaParsePopulation(t *testing.T) {
 	assert.Equal(t, 715_522, parsePopulation(doc))
 }
 
-func TestWikipediaParseAreaSqFt(t *testing.T) {
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
+func TestWikipediaServiceParseAreaSqFt(t *testing.T) {
+	var data wikipediaPageResponse
+	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -131,10 +129,9 @@ func TestWikipediaParseAreaSqFt(t *testing.T) {
 	assert.Equal(t, float32(154.726), parseAreaSqFt(doc))
 }
 
-func TestWikipediaParseElevationFt(t *testing.T) {
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
+func TestWikipediaServiceParseElevationFt(t *testing.T) {
+	var data wikipediaPageResponse
+	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -143,10 +140,9 @@ func TestWikipediaParseElevationFt(t *testing.T) {
 	assert.Equal(t, 5_276, parseElevationFt(doc))
 }
 
-func TestWikipediaParseClimateTable(t *testing.T) {
-	filename := filepath.Join("testdata", "wikipedia_parse_denver.json")
-	var data WikipediaPageResult
-	text, err := ioutil.ReadFile(filename)
+func TestWikipediaServiceParseClimateTable(t *testing.T) {
+	var data wikipediaPageResponse
+	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
