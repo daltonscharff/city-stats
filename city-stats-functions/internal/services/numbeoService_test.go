@@ -1,4 +1,4 @@
-package sources
+package services
 
 import (
 	"fmt"
@@ -10,12 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var numbeoHtmlFilename = filepath.Join("..", "..", "testdata", "numbeo.html")
+
 func TestNumbeoFind(t *testing.T) {
 	defer gock.Off()
 
 	gock.New(utils.NumbeoUrl).
 		Get("/cost-of-living/rankings_current.jsp").Persist().
-		Reply(200).File(filepath.Join("testdata", "numbeo.html"))
+		Reply(200).File(numbeoHtmlFilename)
 
 	n := Numbeo{}
 
