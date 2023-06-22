@@ -113,66 +113,82 @@ func getHtmlByPageId(pageId string) (string, error) {
 }
 
 func parseHtml(body string) (WikipediaStats, error) {
-	var s WikipediaStats
-
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return WikipediaStats{}, err
 	}
 
-	popIndex := -1
-	areaIndex := -1
-	doc.Find(".infobox.vcard tr").Each(func(i int, selection *goquery.Selection) {
-		th := selection.Find("th").Text()
-		td := selection.Find("td").Text()
-
-		switch {
-		case strings.ToLower(th) == "state":
-			s.State = td
-
-		case s.ElevationFt == 0 && strings.Contains(strings.ToLower(th), "elevation"):
-			e := strings.Split(td, "ft")
-			elevation := strings.ReplaceAll(strings.TrimSpace(e[0]), ",", "")
-			intElevation, err := strconv.Atoi(elevation)
-			if err != nil {
-				s.ElevationFt = -1
-				break
-			}
-			s.ElevationFt = intElevation
-
-		case popIndex == -1 && strings.Contains(strings.ToLower(th), "population"):
-			popIndex = i
-
-		case popIndex > -1 && i == popIndex+1:
-			pop := strings.ReplaceAll(td, ",", "")
-			intPop, err := strconv.Atoi(pop)
-			if err != nil {
-				s.Population = -1
-				break
-			}
-			s.Population = intPop
-
-		case areaIndex == -1 && strings.Contains(strings.ToLower(th), "area"):
-			areaIndex = i
-
-		case areaIndex > -1 && i == areaIndex+1:
-			a := strings.Split(td, "sq")
-			area := strings.ReplaceAll(strings.TrimSpace(a[0]), ",", "")
-			floatArea, err := strconv.ParseFloat(area, 32)
-			if err != nil {
-				s.AreaSqMi = -1
-				break
-			}
-			s.AreaSqMi = float32(floatArea)
-		}
-	})
-
-	s.City = doc.Find("div.mw-parser-output p b").First().Text()
-
-	return s, nil
+	return WikipediaStats{
+		parseCity(doc),
+		parseState(doc),
+		parsePopulation(doc),
+		parseAreaSqFt(doc),
+		parseElevationFt(doc),
+		parseClimateTable(doc),
+	}, nil
 }
 
-func parseClimateRecord(doc *goquery.Document) ([]WikipediaClimateRecord, error) {
+func parseCity(doc *goquery.Document) string {
+	return doc.Find("div.mw-parser-output p b").First().Text()
+}
+
+func parseState(doc *goquery.Document) string {
+	return doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
+		th := s.Find("th").Text()
+		return strings.ToLower(th) == "state"
+	}).First().Find("td").Text()
+}
+
+func parsePopulation(doc *goquery.Document) int {
+	populationStr := doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
+		th := s.Find("th").Text()
+		return strings.Contains(strings.ToLower(th), "population")
+	}).First().Next().Find("td").Text()
+
+	populationStr = strings.ReplaceAll(populationStr, ",", "")
+	population, err := strconv.Atoi(populationStr)
+	if err != nil {
+		population = -1
+	}
+	return population
+}
+
+func parseAreaSqFt(doc *goquery.Document) float32 {
+	areaStr := doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
+		th := s.Find("th").Text()
+		return strings.Contains(strings.ToLower(th), "area")
+	}).First().Next().Find("td").Text()
+
+	areaStr = strings.Split(areaStr, "sq")[0]
+	areaStr = strings.ReplaceAll(areaStr, ",", "")
+	areaStr = strings.TrimSpace(areaStr)
+	areaFloat, err := strconv.ParseFloat(areaStr, 32)
+	if err != nil {
+		areaFloat = -1
+
+	}
+	return float32(areaFloat)
+}
+
+func parseElevationFt(doc *goquery.Document) int {
+	elevationStr := doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
+		th := s.Find("th").Text()
+		return strings.Contains(strings.ToLower(th), "elevation")
+	}).First().Find("td").Text()
+
+	elevationStr = strings.Split(elevationStr, "ft")[0]
+	elevationStr = strings.ReplaceAll(elevationStr, ",", "")
+	elevationStr = strings.TrimSpace(elevationStr)
+
+	elevation, err := strconv.Atoi(elevationStr)
+	if err != nil {
+		elevation = -1
+	}
+
+	return elevation
+}
+
+func parseClimateTable(doc *goquery.Document) []WikipediaClimateRecord {
 	tableHeader := doc.Find("table.wikitable tbody tr th").FilterFunction(func(_ int, s *goquery.Selection) bool {
 		text := strings.ToLower(s.Text())
 		return strings.Contains(text, "climate data")
@@ -218,5 +234,5 @@ func parseClimateRecord(doc *goquery.Document) ([]WikipediaClimateRecord, error)
 		climateRecords = append(climateRecords, climateRecord)
 	})
 
-	return climateRecords, nil
+	return climateRecords
 }
