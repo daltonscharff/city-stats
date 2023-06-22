@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/daltonscharff/city-stats/internal/utils"
 	"golang.org/x/exp/slices"
-	"golang.org/x/net/html"
 )
 
-type NumbeoDataRow struct {
+type NumbeoCostOfLivingRecord struct {
 	Location                  string
 	CostOfLivingIndex         float32
 	RentIndex                 float32
@@ -20,68 +20,59 @@ type NumbeoDataRow struct {
 	LocalPurchasingPowerIndex float32
 }
 
-type Numbeo struct {
-	Rows []NumbeoDataRow
-}
+type NumbeoService struct{}
 
-func (n *Numbeo) parse(body string) {
-	tkn := html.NewTokenizer(strings.NewReader(body))
-	for {
-		tt := tkn.Next()
-		switch {
-		case tt == html.ErrorToken:
-			return
-
-		case tt == html.StartTagToken:
-			t := tkn.Token()
-			if t.Data == "tr" {
-				row := []string{}
-				for {
-					tt = tkn.Next()
-					t = tkn.Token()
-					d := strings.TrimSpace(t.Data)
-					if tt == html.ErrorToken {
-						return
-					}
-					if tt == html.EndTagToken && d == "tr" {
-						break
-					}
-					if tt == html.TextToken && len(d) > 0 {
-						row = append(row, d)
-					}
-				}
-				if len(row) == 7 {
-					stats := []float32{}
-					for i := 1; i < len(row); i++ {
-						f, _ := strconv.ParseFloat(row[i], 8)
-						stats = append(stats, float32(f))
-					}
-
-					r := NumbeoDataRow{row[0], stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]}
-
-					n.Rows = append(n.Rows, r)
-				}
-			}
-		}
+func (n NumbeoService) parseLocationTable(body string) ([]NumbeoCostOfLivingRecord, error) {
+	var records []NumbeoCostOfLivingRecord
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return []NumbeoCostOfLivingRecord{}, err
 	}
+
+	doc.Find("table#t2 tbody tr").Each(func(i int, s *goquery.Selection) {
+		var l string
+		var f []float32
+		s.Find("td").Each(func(i int, s *goquery.Selection) {
+			switch i {
+			case 0:
+				break
+			case 1:
+				l = s.Text()
+			default:
+				stat, err := strconv.ParseFloat(s.Text(), 32)
+				if err != nil {
+					stat = -1
+				}
+				f = append(f, float32(stat))
+			}
+		})
+
+		records = append(records, NumbeoCostOfLivingRecord{l, f[0], f[1], f[2], f[3], f[4], f[5]})
+	})
+
+	return records, nil
 }
 
-func (n *Numbeo) Find(location string) (NumbeoDataRow, error) {
+func (n NumbeoService) LocationSearch(location string) (NumbeoCostOfLivingRecord, error) {
 	body, err := utils.Scrape(utils.NumbeoUrl)
 	if err != nil {
-		return NumbeoDataRow{}, err
+		return NumbeoCostOfLivingRecord{}, err
 	}
-	n.parse(body)
 
-	index := slices.IndexFunc(n.Rows, func(row NumbeoDataRow) bool {
+	records, err := n.parseLocationTable(body)
+	if err != nil {
+		return NumbeoCostOfLivingRecord{}, err
+	}
+
+	index := slices.IndexFunc(records, func(row NumbeoCostOfLivingRecord) bool {
 		l := strings.ToLower((row.Location))
 		loc := strings.ToLower(location)
 		return strings.Contains(l, loc)
 	})
 
 	if index == -1 {
-		return NumbeoDataRow{}, errors.New("location not found")
+		return NumbeoCostOfLivingRecord{}, errors.New("location not found")
 	}
 
-	return n.Rows[index], nil
+	return records[index], nil
 }
