@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,18 +14,18 @@ import (
 )
 
 type WikipediaClimateRecord struct {
-	Name    string
-	Records [12]float32
-	Average float32
+	Name  string
+	Month [12]float32
+	Year  float32
 }
 
 type WikipediaStats struct {
-	City        string
-	State       string
-	Population  int
-	AreaSqMi    float32
-	ElevationFt int
-	Climate     []WikipediaClimateRecord
+	City         string
+	State        string
+	Population   int
+	AreaSqMi     float32
+	ElevationFt  int
+	ClimateTable []WikipediaClimateRecord
 }
 
 type WikipediaSearchQueryResult struct {
@@ -169,4 +170,53 @@ func parseHtml(body string) (WikipediaStats, error) {
 	s.City = doc.Find("div.mw-parser-output p b").First().Text()
 
 	return s, nil
+}
+
+func parseClimateRecord(doc *goquery.Document) ([]WikipediaClimateRecord, error) {
+	tableHeader := doc.Find("table.wikitable tbody tr th").FilterFunction(func(_ int, s *goquery.Selection) bool {
+		text := strings.ToLower(s.Text())
+		return strings.Contains(text, "climate data")
+	}).First()
+
+	tableElement := tableHeader.ParentsFiltered("table.wikitable")
+
+	rowElements := tableElement.Find("tr").FilterFunction(func(_ int, s *goquery.Selection) bool {
+		return s.Find("td").Length() >= 12
+	})
+
+	var climateRecords []WikipediaClimateRecord
+
+	rowElements.Each(func(_ int, s *goquery.Selection) {
+		re := regexp.MustCompile(`\(.*\)`)
+
+		name := s.Find("th").Text()
+		name = re.ReplaceAllString(name, "")
+		name = strings.TrimSpace(name)
+
+		climateRecord := WikipediaClimateRecord{Name: name}
+
+		ss := s.Find("td")
+		ss.Each(func(i int, s *goquery.Selection) {
+			v := s.Text()
+			v = re.ReplaceAllString(v, "")
+			v = strings.ReplaceAll(v, ",", "")
+			v = strings.ReplaceAll(v, "−", "-")
+			v = strings.TrimSpace(v)
+			vFloat, err := strconv.ParseFloat(v, 32)
+			if err != nil {
+				vFloat = -1
+			}
+			vFloat32 := float32(vFloat)
+
+			if i < 12 {
+				climateRecord.Month[i] = vFloat32
+			} else {
+				climateRecord.Year = vFloat32
+			}
+		})
+
+		climateRecords = append(climateRecords, climateRecord)
+	})
+
+	return climateRecords, nil
 }
