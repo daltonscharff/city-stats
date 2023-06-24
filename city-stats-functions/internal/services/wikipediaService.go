@@ -78,7 +78,7 @@ func (w WikipediaService) getPageId(query string) (string, error) {
 		"gsrsearch": query,
 		"format":    "json",
 		"generator": "search",
-	}).SetResult(&data).ForceContentType("application/json").Get(utils.WikipediaApiUrl)
+	}).SetResult(&data).Get(utils.WikipediaApiUrl)
 	if err != nil {
 		return "", err
 	}
@@ -99,7 +99,7 @@ func (w WikipediaService) getHtmlByPageId(pageId string) (string, error) {
 		"action": "parse",
 		"pageid": pageId,
 		"format": "json",
-	}).SetResult(&data).ForceContentType("application/json").Get(utils.WikipediaApiUrl)
+	}).SetResult(&data).Get(utils.WikipediaApiUrl)
 	if err != nil {
 		return "", err
 	}

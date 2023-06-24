@@ -32,7 +32,7 @@ func TestWikipediaService_getPageId(t *testing.T) {
 			"format":    "json",
 			"generator": "search",
 		}).Reply(200).
-		File(wikipediaQueryFilename)
+		File(wikipediaQueryFilename).Type("json")
 
 	w := WikipediaService{client}
 
@@ -53,7 +53,7 @@ func TestWikipediaService_getHtmlByPageId(t *testing.T) {
 			"format": "json",
 		}).
 		Persist().Reply(200).
-		File(wikipediaParseFilename)
+		File(wikipediaParseFilename).Type("json")
 	gock.New(utils.WikipediaApiUrl).
 		MatchParams(map[string]string{
 			"action": "parse",
