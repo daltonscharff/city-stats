@@ -1,0 +1,14 @@
+{
+  "query": "richmond",
+  "suggestions": [
+    { "path": "/VA/Richmond", "name": "Richmond, VA" },
+    { "path": "/CA-BC/Richmond", "name": "Richmond, CA-BC" },
+    { "path": "/CA-ON/Richmond_Hill", "name": "Richmond Hill, CA-ON" },
+    { "path": "/CA/Richmond", "name": "Richmond, CA" },
+    {
+      "path": "/NY/New_York/Richmond_Hill",
+      "name": "Richmond Hill, New York, NY"
+    }
+  ],
+  "entities": true
+}
