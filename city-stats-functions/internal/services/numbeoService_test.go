@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 
 var numbeoColFilename = filepath.Join("..", "..", "testdata", "numbeo_col.html")
 
-func TestNumbeoServiceLocationSearch(t *testing.T) {
+func TestNumbeoService_LocationSearch(t *testing.T) {
 	client := resty.New()
 	defer gock.Off()
 	gock.InterceptClient(client.GetClient())
@@ -43,4 +44,15 @@ func TestNumbeoServiceLocationSearch(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Contains(t, err.Error(), "location not found")
 	})
+}
+
+func TestNumbeoService_parseLocationTable(t *testing.T) {
+	text, err := ioutil.ReadFile(numbeoColFilename)
+	assert.Nil(t, err)
+
+	n := NumbeoService{}
+
+	table, err := n.parseLocationTable(string(text))
+	assert.Nil(t, err)
+	assert.Len(t, table, 574)
 }
