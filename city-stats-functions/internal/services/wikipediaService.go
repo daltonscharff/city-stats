@@ -1,17 +1,20 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/daltonscharff/city-stats/internal/utils"
+	"github.com/go-resty/resty/v2"
 	"golang.org/x/exp/maps"
 )
+
+type WikipediaService struct {
+	Client *resty.Client
+}
 
 type WikipediaClimateRecord struct {
 	Name  string
@@ -29,6 +32,11 @@ type WikipediaLocationSearchResult struct {
 }
 
 type wikipediaSearchQueryResponse struct {
+	// Batchcomplete string `json:"batchcomplete"`
+	// Continue      map[string]struct {
+	// 	Gsroffset int `json:"gsroffset"`
+	// 	Continue  int `json:"continue"`
+	// } `json:"continue"`
 	Query struct {
 		Pages map[string]struct {
 			Pageid int    `json:"pageid"`
@@ -52,73 +60,57 @@ type wikipediaPageResponse struct {
 	} `json:"error,omitempty"`
 }
 
-func LocationSearch(location string) (WikipediaLocationSearchResult, error) {
-	pageId, err := getPageId(location)
+func (w WikipediaService) LocationSearch(location string) (WikipediaLocationSearchResult, error) {
+	pageId, err := w.getPageId(location)
 	if err != nil {
 		return WikipediaLocationSearchResult{}, err
 	}
 
-	html, err := getHtmlByPageId(pageId)
+	html, err := w.getHtmlByPageId(pageId)
 	if err != nil {
 		return WikipediaLocationSearchResult{}, err
 	}
 
-	return parseLocationData(html)
+	return w.parseLocationData(html)
 }
 
-func getPageId(query string) (string, error) {
-	req, err := http.NewRequest("GET", utils.WikipediaApiUrl, nil)
-	if err != nil {
-		return "", err
-	}
-
-	q := req.URL.Query()
-	q.Add("action", "query")
-	q.Add("gsrlimit", "1")
-	q.Add("gsrsearch", query)
-	q.Add("format", "json")
-	q.Add("generator", "search")
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-
+func (w WikipediaService) getPageId(query string) (string, error) {
 	var data wikipediaSearchQueryResponse
-	err = json.NewDecoder(resp.Body).Decode(&data)
+
+	res, err := w.Client.R().SetQueryParams(map[string]string{
+		"action":    "query",
+		"gsrlimit":  "1",
+		"gsrsearch": query,
+		"format":    "json",
+		"generator": "search",
+	}).SetResult(&data).ForceContentType("application/json").Get(utils.WikipediaApiUrl)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	if res.StatusCode() >= 300 {
+		return "", errors.New(res.Status())
+	}
+	if len(maps.Keys(data.Query.Pages)) == 0 {
+		return "", errors.New("no pageId found")
+	}
 
 	return maps.Keys(data.Query.Pages)[0], nil
 }
 
-func getHtmlByPageId(pageId string) (string, error) {
-	req, err := http.NewRequest("GET", utils.WikipediaApiUrl, nil)
-	if err != nil {
-		return "", err
-	}
-
-	q := req.URL.Query()
-	q.Add("action", "parse")
-	q.Add("pageid", pageId)
-	q.Add("format", "json")
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-
+func (w WikipediaService) getHtmlByPageId(pageId string) (string, error) {
 	var data wikipediaPageResponse
-	err = json.NewDecoder(resp.Body).Decode(&data)
+
+	res, err := w.Client.R().SetQueryParams(map[string]string{
+		"action": "parse",
+		"pageid": pageId,
+		"format": "json",
+	}).SetResult(&data).ForceContentType("application/json").Get(utils.WikipediaApiUrl)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-
+	if res.StatusCode() >= 300 {
+		return "", errors.New(res.Status())
+	}
 	if data.Error.Code != "" {
 		return "", errors.New(data.Error.Code)
 	}
@@ -126,34 +118,34 @@ func getHtmlByPageId(pageId string) (string, error) {
 	return data.Parse.Text.All, nil
 }
 
-func parseLocationData(body string) (WikipediaLocationSearchResult, error) {
+func (w WikipediaService) parseLocationData(body string) (WikipediaLocationSearchResult, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return WikipediaLocationSearchResult{}, err
 	}
 
 	return WikipediaLocationSearchResult{
-		parseCity(doc),
-		parseState(doc),
-		parsePopulation(doc),
-		parseAreaSqFt(doc),
-		parseElevationFt(doc),
-		parseClimateTable(doc),
+		w.parseCity(doc),
+		w.parseState(doc),
+		w.parsePopulation(doc),
+		w.parseAreaSqFt(doc),
+		w.parseElevationFt(doc),
+		w.parseClimateTable(doc),
 	}, nil
 }
 
-func parseCity(doc *goquery.Document) string {
+func (w WikipediaService) parseCity(doc *goquery.Document) string {
 	return doc.Find("div.mw-parser-output p b").First().Text()
 }
 
-func parseState(doc *goquery.Document) string {
+func (w WikipediaService) parseState(doc *goquery.Document) string {
 	return doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
 		th := s.Find("th").Text()
 		return strings.ToLower(th) == "state"
 	}).First().Find("td").Text()
 }
 
-func parsePopulation(doc *goquery.Document) int {
+func (w WikipediaService) parsePopulation(doc *goquery.Document) int {
 	populationStr := doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
 		th := s.Find("th").Text()
 		return strings.Contains(strings.ToLower(th), "population")
@@ -167,7 +159,7 @@ func parsePopulation(doc *goquery.Document) int {
 	return population
 }
 
-func parseAreaSqFt(doc *goquery.Document) float32 {
+func (w WikipediaService) parseAreaSqFt(doc *goquery.Document) float32 {
 	areaStr := doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
 		th := s.Find("th").Text()
 		return strings.Contains(strings.ToLower(th), "area")
@@ -184,7 +176,7 @@ func parseAreaSqFt(doc *goquery.Document) float32 {
 	return float32(areaFloat)
 }
 
-func parseElevationFt(doc *goquery.Document) int {
+func (w WikipediaService) parseElevationFt(doc *goquery.Document) int {
 	elevationStr := doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
 		th := s.Find("th").Text()
 		return strings.Contains(strings.ToLower(th), "elevation")
@@ -202,7 +194,7 @@ func parseElevationFt(doc *goquery.Document) int {
 	return elevation
 }
 
-func parseClimateTable(doc *goquery.Document) []WikipediaClimateRecord {
+func (w WikipediaService) parseClimateTable(doc *goquery.Document) []WikipediaClimateRecord {
 	tableHeader := doc.Find("table.wikitable tbody tr th").FilterFunction(func(_ int, s *goquery.Selection) bool {
 		text := strings.ToLower(s.Text())
 		return strings.Contains(text, "climate data")

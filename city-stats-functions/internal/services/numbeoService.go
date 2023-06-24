@@ -7,6 +7,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/daltonscharff/city-stats/internal/utils"
+	"github.com/go-resty/resty/v2"
 	"golang.org/x/exp/slices"
 )
 
@@ -20,7 +21,9 @@ type NumbeoCostOfLivingRecord struct {
 	LocalPurchasingPowerIndex float32
 }
 
-type NumbeoService struct{}
+type NumbeoService struct {
+	Client *resty.Client
+}
 
 func (n NumbeoService) parseLocationTable(body string) ([]NumbeoCostOfLivingRecord, error) {
 	var records []NumbeoCostOfLivingRecord
@@ -54,12 +57,13 @@ func (n NumbeoService) parseLocationTable(body string) ([]NumbeoCostOfLivingReco
 }
 
 func (n NumbeoService) LocationSearch(location string) (NumbeoCostOfLivingRecord, error) {
-	body, err := utils.Scrape(utils.NumbeoUrl)
+	resp, err := n.Client.R().
+		Get(utils.NumbeoUrl)
 	if err != nil {
 		return NumbeoCostOfLivingRecord{}, err
 	}
 
-	records, err := n.parseLocationTable(body)
+	records, err := n.parseLocationTable(string(resp.Body()))
 	if err != nil {
 		return NumbeoCostOfLivingRecord{}, err
 	}

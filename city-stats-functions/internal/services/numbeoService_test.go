@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/daltonscharff/city-stats/internal/utils"
+	"github.com/go-resty/resty/v2"
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,13 +14,14 @@ import (
 var numbeoColFilename = filepath.Join("..", "..", "testdata", "numbeo_col.html")
 
 func TestNumbeoServiceLocationSearch(t *testing.T) {
+	client := resty.New()
 	defer gock.Off()
-
+	gock.InterceptClient(client.GetClient())
 	gock.New(utils.NumbeoUrl).
 		Get("/cost-of-living/rankings_current.jsp").Persist().
 		Reply(200).File(numbeoColFilename)
 
-	n := NumbeoService{}
+	n := NumbeoService{client}
 
 	t.Run("Valid location, normal case", func(t *testing.T) {
 		row, err := n.LocationSearch(("Austin, TX"))
