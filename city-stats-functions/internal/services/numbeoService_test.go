@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -47,7 +47,7 @@ func TestNumbeoService_LocationSearch(t *testing.T) {
 }
 
 func TestNumbeoService_parseLocationTable(t *testing.T) {
-	text, err := ioutil.ReadFile(numbeoColFilename)
+	text, err := os.ReadFile(numbeoColFilename)
 	assert.Nil(t, err)
 
 	n := NumbeoService{}

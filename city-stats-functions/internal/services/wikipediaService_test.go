@@ -2,7 +2,7 @@ package services
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -71,7 +71,7 @@ func TestWikipediaService_getHtmlByPageId(t *testing.T) {
 
 	t.Run("Valid pageid", func(t *testing.T) {
 		var data wikipediaPageResponse
-		text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+		text, err := os.ReadFile(wikipediaParseDenverFilename)
 		assert.Nil(t, err)
 
 		json.Unmarshal(text, &data)
@@ -89,7 +89,7 @@ func TestWikipediaService_getHtmlByPageId(t *testing.T) {
 
 func TestWikipediaService_parseLocationData(t *testing.T) {
 	var data wikipediaPageResponse
-	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+	text, err := os.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -101,7 +101,7 @@ func TestWikipediaService_parseLocationData(t *testing.T) {
 
 func TestWikipediaService_parseCity(t *testing.T) {
 	var data wikipediaPageResponse
-	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+	text, err := os.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -113,7 +113,7 @@ func TestWikipediaService_parseCity(t *testing.T) {
 
 func TestWikipediaService_parseState(t *testing.T) {
 	var data wikipediaPageResponse
-	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+	text, err := os.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -125,7 +125,7 @@ func TestWikipediaService_parseState(t *testing.T) {
 
 func TestWikipediaService_parsePopulation(t *testing.T) {
 	var data wikipediaPageResponse
-	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+	text, err := os.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -137,7 +137,7 @@ func TestWikipediaService_parsePopulation(t *testing.T) {
 
 func TestWikipediaService_parseAreaSqFt(t *testing.T) {
 	var data wikipediaPageResponse
-	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+	text, err := os.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -149,7 +149,7 @@ func TestWikipediaService_parseAreaSqFt(t *testing.T) {
 
 func TestWikipediaService_parseElevationFt(t *testing.T) {
 	var data wikipediaPageResponse
-	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+	text, err := os.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
@@ -161,7 +161,7 @@ func TestWikipediaService_parseElevationFt(t *testing.T) {
 
 func TestWikipediaService_parseClimateTable(t *testing.T) {
 	var data wikipediaPageResponse
-	text, err := ioutil.ReadFile(wikipediaParseDenverFilename)
+	text, err := os.ReadFile(wikipediaParseDenverFilename)
 	assert.Nil(t, err)
 	json.Unmarshal(text, &data)
 
