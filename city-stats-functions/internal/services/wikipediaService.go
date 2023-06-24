@@ -32,11 +32,6 @@ type WikipediaLocationSearchResult struct {
 }
 
 type wikipediaSearchQueryResponse struct {
-	// Batchcomplete string `json:"batchcomplete"`
-	// Continue      map[string]struct {
-	// 	Gsroffset int `json:"gsroffset"`
-	// 	Continue  int `json:"continue"`
-	// } `json:"continue"`
 	Query struct {
 		Pages map[string]struct {
 			Pageid int    `json:"pageid"`
