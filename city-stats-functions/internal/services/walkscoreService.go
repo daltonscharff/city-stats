@@ -2,7 +2,11 @@ package services
 
 import (
 	"errors"
+	"regexp"
+	"strconv"
+	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/daltonscharff/city-stats/internal/utils"
 	"github.com/go-resty/resty/v2"
 )
@@ -20,9 +24,9 @@ type WalkscoreGetPathResponse struct {
 }
 
 type WalkscoreScore struct {
-	Walk    int8
-	Transit int8
-	Bike    int8
+	Walk    int
+	Transit int
+	Bike    int
 }
 
 type WalkscoreNeighborhood struct {
@@ -32,9 +36,9 @@ type WalkscoreNeighborhood struct {
 }
 
 type WalkscoreSearchResult struct {
-	Location      string
-	AverageScore  WalkscoreScore
-	Neighborhoods []WalkscoreNeighborhood
+	Location           string
+	CityScore          WalkscoreScore
+	NeighborhoodScores []WalkscoreNeighborhood
 }
 
 func (w WalkscoreService) getPath(location string) (string, error) {
@@ -63,3 +67,57 @@ func (w WalkscoreService) getHtmlByPath(path string) (string, error) {
 
 	return string(res.Body()), nil
 }
+
+func (w WalkscoreService) parseBody(body string) (WalkscoreSearchResult, error) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		return WalkscoreSearchResult{}, err
+	}
+
+	location := w.parseLocation(doc)
+	cityScores := w.parseCityScores(doc)
+	// neighborhoodScores := w.parseNeighborhoodScores(doc)
+	neighborhoodScores := []WalkscoreNeighborhood{}
+
+	return WalkscoreSearchResult{location, cityScores, neighborhoodScores}, nil
+}
+
+func (w WalkscoreService) parseLocation(doc *goquery.Document) string {
+	location := doc.Find("#title").Text()
+	location = strings.ReplaceAll(location, "Living in", "")
+	location = strings.TrimSpace(location)
+	return location
+}
+
+func (w WalkscoreService) parseCityScores(doc *goquery.Document) WalkscoreScore {
+	var (
+		walk      = -1
+		transit   = -1
+		bike      = -1
+		walkRe    = regexp.MustCompile(`(?i)(\d+) walk score`)
+		transitRe = regexp.MustCompile(`(?i)(\d+) transit score`)
+		bikeRe    = regexp.MustCompile(`(?i)(\d+) bike score`)
+	)
+
+	doc.Find("img").Each(func(i int, s *goquery.Selection) {
+		alt, _ := s.Attr("alt")
+		walkMatch := walkRe.FindAllStringSubmatch(alt, -1)
+		transitMatch := transitRe.FindAllStringSubmatch(alt, -1)
+		bikeMatch := bikeRe.FindAllStringSubmatch(alt, -1)
+
+		switch {
+		case walk == -1 && len(walkMatch) > 0:
+			walk, _ = strconv.Atoi(walkMatch[0][1])
+		case transit == -1 && len(transitMatch) > 0:
+			transit, _ = strconv.Atoi(transitMatch[0][1])
+		case bike == -1 && len(bikeMatch) > 0:
+			bike, _ = strconv.Atoi(bikeMatch[0][1])
+		}
+	})
+
+	return WalkscoreScore{walk, transit, bike}
+}
+
+// func (w WalkscoreService) parseNeighborhoodScores(doc *goquery.Document) []WalkscoreNeighborhood {
+
+// }

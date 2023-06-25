@@ -3,8 +3,10 @@ package services
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/daltonscharff/city-stats/internal/utils"
 	"github.com/go-resty/resty/v2"
 	"github.com/h2non/gock"
@@ -51,4 +53,50 @@ func TestWalkscoreService_getHtmlByPath(t *testing.T) {
 	text, err := os.ReadFile(walkscorePageIncompleteFilename)
 	assert.Nil(t, err)
 	assert.Equal(t, string(text), body)
+}
+
+func TestWalkscoreService_parseLocation(t *testing.T) {
+	body, err := os.ReadFile(walkscorePageCompleteFilename)
+	assert.Nil(t, err)
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
+	assert.Nil(t, err)
+
+	w := WalkscoreService{}
+
+	location := w.parseLocation(doc)
+
+	assert.Equal(t, "Durham", location)
+}
+
+func TestWalkscoreService_parseCityScores(t *testing.T) {
+	w := WalkscoreService{}
+
+	table := []struct {
+		name     string
+		filename string
+		expected WalkscoreScore
+	}{{
+		name:     "all scores",
+		filename: walkscorePageCompleteFilename,
+		expected: WalkscoreScore{30, 28, 38},
+	}, {
+		name:     "missing transit score",
+		filename: walkscorePageIncompleteFilename,
+		expected: WalkscoreScore{51, -1, 51},
+	}}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			body, err := os.ReadFile(test.filename)
+			assert.Nil(t, err)
+
+			doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
+			assert.Nil(t, err)
+
+			scores := w.parseCityScores(doc)
+
+			assert.Equal(t, test.expected, scores)
+		})
+	}
 }
