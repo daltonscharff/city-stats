@@ -20,7 +20,7 @@ type WalkscoreGetPathResponse struct {
 	Suggestions []struct {
 		Path string `json:"path"`
 		Name string `json:"name"`
-	} `json:"suggestions`
+	} `json:"suggestions"`
 }
 
 type WalkscoreScore struct {
@@ -31,7 +31,7 @@ type WalkscoreScore struct {
 
 type WalkscoreNeighborhood struct {
 	Name       string
-	Population int32
+	Population int
 	Score      WalkscoreScore
 }
 
@@ -76,8 +76,7 @@ func (w WalkscoreService) parseBody(body string) (WalkscoreSearchResult, error) 
 
 	location := w.parseLocation(doc)
 	cityScores := w.parseCityScores(doc)
-	// neighborhoodScores := w.parseNeighborhoodScores(doc)
-	neighborhoodScores := []WalkscoreNeighborhood{}
+	neighborhoodScores := w.parseNeighborhoodScores(doc)
 
 	return WalkscoreSearchResult{location, cityScores, neighborhoodScores}, nil
 }
@@ -118,6 +117,38 @@ func (w WalkscoreService) parseCityScores(doc *goquery.Document) WalkscoreScore 
 	return WalkscoreScore{walk, transit, bike}
 }
 
-// func (w WalkscoreService) parseNeighborhoodScores(doc *goquery.Document) []WalkscoreNeighborhood {
+func (w WalkscoreService) parseNeighborhoodScores(doc *goquery.Document) []WalkscoreNeighborhood {
+	var neighborhoodScores []WalkscoreNeighborhood
+	doc.Find("#hoods-list-table tbody tr").Each(func(i int, s *goquery.Selection) {
+		var neighborhood WalkscoreNeighborhood
+		neighborhood.Name = s.Find(".name").First().Text()
 
-// }
+		population, err := strconv.Atoi(strings.ReplaceAll(s.Find(".population").First().Text(), ",", ""))
+		if err != nil {
+			population = -1
+		}
+		neighborhood.Population = population
+
+		walkScore, err := strconv.Atoi(strings.TrimSpace(s.Find(".walkscore").First().Text()))
+		if err != nil {
+			walkScore = -1
+		}
+		neighborhood.Score.Walk = walkScore
+
+		transitScore, err := strconv.Atoi(strings.TrimSpace(s.Find(".transitscore").First().Text()))
+		if err != nil {
+			transitScore = -1
+		}
+		neighborhood.Score.Transit = transitScore
+
+		bikeScore, err := strconv.Atoi(strings.TrimSpace(s.Find(".bikescore").First().Text()))
+		if err != nil {
+			bikeScore = -1
+		}
+		neighborhood.Score.Bike = bikeScore
+
+		neighborhoodScores = append(neighborhoodScores, neighborhood)
+	})
+
+	return neighborhoodScores
+}

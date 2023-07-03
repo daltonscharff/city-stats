@@ -100,3 +100,64 @@ func TestWalkscoreService_parseCityScores(t *testing.T) {
 		})
 	}
 }
+
+func TestWalkscoreService_parseNeighborhoodScores(t *testing.T) {
+	w := WalkscoreService{}
+
+	table := []struct {
+		name                      string
+		filename                  string
+		expectedLength            int
+		expectedFirstNeighborhood WalkscoreNeighborhood
+	}{{
+		name:           "all scores",
+		filename:       walkscorePageCompleteFilename,
+		expectedLength: 27,
+		expectedFirstNeighborhood: WalkscoreNeighborhood{
+			Name:       "Old West Durham",
+			Population: 2_086,
+			Score: WalkscoreScore{
+				80, 51, 85,
+			},
+		},
+	}, {
+		name:           "missing transit score",
+		filename:       walkscorePageIncompleteFilename,
+		expectedLength: 113,
+		expectedFirstNeighborhood: WalkscoreNeighborhood{
+			Name:       "Monroe Ward",
+			Population: 2_763,
+			Score: WalkscoreScore{
+				95, -1, 81,
+			},
+		},
+	}}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			body, err := os.ReadFile(test.filename)
+			assert.Nil(t, err)
+
+			doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
+			assert.Nil(t, err)
+
+			neighborhoodScores := w.parseNeighborhoodScores(doc)
+
+			assert.Equal(t, test.expectedLength, len(neighborhoodScores))
+			assert.EqualValues(t, test.expectedFirstNeighborhood, neighborhoodScores[0])
+		})
+	}
+}
+
+func TestWalkscoreService_parseBody(t *testing.T) {
+	body, err := os.ReadFile(walkscorePageCompleteFilename)
+	assert.Nil(t, err)
+	w := WalkscoreService{}
+
+	result, err := w.parseBody(string(body))
+
+	assert.Nil(t, err)
+	assert.Equal(t, "Durham", result.Location)
+	assert.Equal(t, WalkscoreScore{30, 28, 38}, result.CityScore)
+	assert.Equal(t, 27, len(result.NeighborhoodScores))
+}
