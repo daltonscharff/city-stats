@@ -1,0 +1,58 @@
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/daltonscharff/city-stats/internal/services"
+	"github.com/go-resty/resty/v2"
+	"github.com/spf13/cobra"
+)
+
+type FindFlags struct {
+	showClimate       bool
+	showNeighborhoods bool
+}
+
+var (
+	flags   FindFlags
+	findCmd = &cobra.Command{
+		Use:   "find <city>",
+		Short: "Find stats for a given city",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("climate", flags.showClimate)
+			fmt.Println("neighborhoods", flags.showNeighborhoods)
+			fmt.Println("args", len(args))
+			find(args[0], flags)
+		},
+	}
+)
+
+func init() {
+	findCmd.Flags().BoolVarP(&flags.showClimate, "climate", "c", false, "show climate data")
+	findCmd.Flags().BoolVarP(&flags.showNeighborhoods, "neighborhoods", "n", false, "show WalkScore for individual neighborhoods")
+
+	rootCmd.AddCommand(findCmd)
+}
+
+func find(location string, flags FindFlags) {
+	client := resty.New()
+
+	wikipediaService := services.WikipediaService{client}
+	wikipediaResponse, err := wikipediaService.LocationSearch(location)
+	if err != nil {
+		fmt.Println("wikipediaService.LocationSearch error", err)
+	}
+
+	wikipediaLocation := fmt.Sprintf("%s, %s", wikipediaResponse.City, wikipediaResponse.State)
+
+	// walkscoreService := services.WalkscoreService{client}
+	// walkscoreResponse, err := walkscoreService.(location)
+	// if err != nil {
+	// 	fmt.Println("wikipediaService.LocationSearch error", err)
+	// }
+
+	// numbeoServices := services.NumbeoService{client}
+
+	fmt.Println(wikipediaLocation)
+
+}
