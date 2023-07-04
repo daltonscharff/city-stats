@@ -39,7 +39,7 @@ func init() {
 func find(location string, flags FindFlags) {
 	client := resty.New()
 
-	wikipediaService := services.WikipediaService{client}
+	wikipediaService := services.WikipediaService{Client: client}
 	wikipediaResponse, err := wikipediaService.LocationSearch(location)
 	if err != nil {
 		fmt.Println("wikipediaService.LocationSearch error:", err)
@@ -48,13 +48,13 @@ func find(location string, flags FindFlags) {
 	loc := models.Location{}
 	loc.New(wikipediaResponse.City, wikipediaResponse.State, "United States")
 
-	walkscoreService := services.WalkscoreService{client}
+	walkscoreService := services.WalkscoreService{Client: client}
 	walkscoreResponse, err := walkscoreService.LocationSearch(loc)
 	if err != nil {
 		fmt.Println("walkscoreService.LocationSearch error:", err)
 	}
 
-	numbeoService := services.NumbeoService{client}
+	numbeoService := services.NumbeoService{Client: client}
 	numbeoResponse, err := numbeoService.LocationSearch(loc)
 	if err != nil {
 		fmt.Println("numbeoService.LocationSearch error:", err)
