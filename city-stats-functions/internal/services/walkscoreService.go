@@ -2,11 +2,13 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/daltonscharff/city-stats/internal/models"
 	"github.com/daltonscharff/city-stats/internal/utils"
 	"github.com/go-resty/resty/v2"
 )
@@ -41,11 +43,11 @@ type WalkscoreSearchResult struct {
 	NeighborhoodScores []WalkscoreNeighborhood
 }
 
-func (w WalkscoreService) getPath(location string) (string, error) {
+func (w WalkscoreService) getPath(query string) (string, error) {
 	var data WalkscoreGetPathResponse
 
 	_, err := w.Client.R().SetQueryParams(map[string]string{
-		"query":         location,
+		"query":         query,
 		"skip_entities": "0",
 	}).SetResult(&data).Get(utils.WalkscoreSearchUrl)
 
@@ -66,6 +68,20 @@ func (w WalkscoreService) getHtmlByPath(path string) (string, error) {
 	}
 
 	return string(res.Body()), nil
+}
+
+func (w WalkscoreService) LocationSearch(location models.Location) (WalkscoreSearchResult, error) {
+	path, err := w.getPath(fmt.Sprintf("%s,%s", location.City, location.StateAbbrev))
+	if err != nil {
+		return WalkscoreSearchResult{}, err
+	}
+
+	body, err := w.getHtmlByPath(path)
+	if err != nil {
+		return WalkscoreSearchResult{}, err
+	}
+
+	return w.parseBody(body)
 }
 
 func (w WalkscoreService) parseBody(body string) (WalkscoreSearchResult, error) {

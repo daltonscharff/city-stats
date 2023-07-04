@@ -2,10 +2,12 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/daltonscharff/city-stats/internal/models"
 	"github.com/daltonscharff/city-stats/internal/utils"
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/exp/slices"
@@ -56,7 +58,7 @@ func (n NumbeoService) parseLocationTable(body string) ([]NumbeoCostOfLivingReco
 	return records, nil
 }
 
-func (n NumbeoService) LocationSearch(location string) (NumbeoCostOfLivingRecord, error) {
+func (n NumbeoService) LocationSearch(location models.Location) (NumbeoCostOfLivingRecord, error) {
 	resp, err := n.Client.R().
 		Get(utils.NumbeoUrl)
 	if err != nil {
@@ -70,7 +72,7 @@ func (n NumbeoService) LocationSearch(location string) (NumbeoCostOfLivingRecord
 
 	index := slices.IndexFunc(records, func(row NumbeoCostOfLivingRecord) bool {
 		l := strings.ToLower((row.Location))
-		loc := strings.ToLower(location)
+		loc := strings.ToLower(fmt.Sprintf("%s, %s, %s", location.City, location.StateAbbrev, location.Country))
 		return strings.Contains(l, loc)
 	})
 

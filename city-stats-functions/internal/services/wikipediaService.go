@@ -130,14 +130,18 @@ func (w WikipediaService) parseLocationData(body string) (WikipediaLocationSearc
 }
 
 func (w WikipediaService) parseCity(doc *goquery.Document) string {
-	return doc.Find("div.mw-parser-output p b").First().Text()
+	citySelection := doc.Find("div.mw-parser-output p b").First()
+
+	return strings.TrimSpace(citySelection.Text())
 }
 
 func (w WikipediaService) parseState(doc *goquery.Document) string {
-	return doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
+	stateSelection := doc.Find(".infobox.vcard tr").FilterFunction(func(i int, s *goquery.Selection) bool {
 		th := s.Find("th").Text()
 		return strings.ToLower(th) == "state"
-	}).First().Find("td").Text()
+	}).First().Find("td")
+
+	return strings.TrimSpace(stateSelection.Text())
 }
 
 func (w WikipediaService) parsePopulation(doc *goquery.Document) int {
